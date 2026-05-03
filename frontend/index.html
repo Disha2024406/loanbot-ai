@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LoanBot AI · Trained on 45K Applications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- ✅ All styles in one file -->
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- ── API KEY MODAL ─────────────────────────────────── -->
+<div class="modal-bg" id="apiModal">
+  <div class="modal">
+    <h2>🤖 LoanBot AI</h2>
+    <p>This chatbot is <strong>trained on 45,000 real loan applications</strong>. Enter your Groq API key to activate the AI advisor — your key stays in-browser memory only.</p>
+    <input class="modal-inp" type="password" id="apiKeyInp" placeholder="gsk_…" />
+    <button class="modal-btn" onclick="startWithKey()">Launch LoanBot →</button>
+    <p class="modal-note">Key never leaves your browser · Used only for Groq API calls</p>
+    <div class="modal-divider"><span>or</span></div>
+    <button class="demo-btn" onclick="startDemo()">🧪 Try Demo Mode (no key needed)</button>
+  </div>
+</div>
+
+<!-- ── NAV ────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">🏦</div>
+    <div>
+      <div class="nav-name">LoanBot AI</div>
+      <div class="nav-tag">Trained on 45,000 loan applications</div>
+    </div>
+  </div>
+  <div class="nav-pills">
+    <div class="pill"><span class="dot g"></span>Model Active</div>
+    <div class="pill"><span class="dot b"></span>45K Records</div>
+    <div class="pill"><span class="dot gold"></span>Accuracy ~88%</div>
+  </div>
+  <div class="nav-right">
+    <button class="api-btn" onclick="document.getElementById('apiModal').style.display='flex'">🔑 API Key</button>
+    <button class="theme-toggle" onclick="clearChat()">↺ Reset</button>
+  </div>
+</nav>
+
+<!-- ── SHELL ───────────────────────────────────────────── -->
+<div class="shell">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Dataset Overview</div>
+      <div class="stat-grid">
+        <div class="stat-card g"><div class="sl">Total Records</div><div class="sv">45K</div></div>
+        <div class="stat-card b"><div class="sl">Approval Rate</div><div class="sv">77.8%</div></div>
+        <div class="stat-card t"><div class="sl">Avg Interest</div><div class="sv">11.01%</div></div>
+        <div class="stat-card o"><div class="sl">Avg Loan</div><div class="sv">$9,583</div></div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Approval by Loan Intent</div>
+      <div class="intent-list" id="intentList"></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Quick Prompts</div>
+      <button class="qp-btn" onclick="qs('I want to check my loan eligibility. My income is $75,000 and I need a $15,000 loan.')">
+        <span class="qp-icon">🎯</span>Check My Eligibility
+      </button>
+      <button class="qp-btn" onclick="qs('What credit score do I need to get a loan approved?')">
+        <span class="qp-icon">📊</span>Credit Score Impact
+      </button>
+      <button class="qp-btn" onclick="qs('Calculate EMI for a $10,000 loan at 9% for 3 years')">
+        <span class="qp-icon">🧮</span>Calculate EMI
+      </button>
+      <button class="qp-btn" onclick="qs('What loan intent gets the best approval rate?')">
+        <span class="qp-icon">📈</span>Best Loan Strategy
+      </button>
+      <button class="qp-btn" onclick="qs('How does home ownership affect loan approval?')">
+        <span class="qp-icon">🏠</span>Ownership Impact
+      </button>
+      <button class="qp-btn" onclick="qs('I have previous loan defaults. Can I still get a loan?')">
+        <span class="qp-icon">⚠️</span>Default History Help
+      </button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Key Approval Factors</div>
+      <div class="factor-list">
+        <div class="factor-row">
+          <span class="factor-ico">💸</span>
+          <div class="factor-text">
+            <div class="factor-label">Loan-to-Income Ratio</div>
+            <div class="factor-desc">Strongest predictor (r=0.38)</div>
+          </div>
+          <span class="factor-badge badge-high">HIGH</span>
+        </div>
+        <div class="factor-row">
+          <span class="factor-ico">📉</span>
+          <div class="factor-text">
+            <div class="factor-label">Interest Rate</div>
+            <div class="factor-desc">2nd strongest (r=0.33)</div>
+          </div>
+          <span class="factor-badge badge-high">HIGH</span>
+        </div>
+        <div class="factor-row">
+          <span class="factor-ico">💰</span>
+          <div class="factor-text">
+            <div class="factor-label">Annual Income</div>
+            <div class="factor-desc">Higher = better approval</div>
+          </div>
+          <span class="factor-badge badge-med">MED</span>
+        </div>
+        <div class="factor-row">
+          <span class="factor-ico">📋</span>
+          <div class="factor-text">
+            <div class="factor-label">Past Defaults</div>
+            <div class="factor-desc">100% rejection in dataset</div>
+          </div>
+          <span class="factor-badge badge-high">CRITICAL</span>
+        </div>
+        <div class="factor-row">
+          <span class="factor-ico">🏠</span>
+          <div class="factor-text">
+            <div class="factor-label">Home Ownership</div>
+            <div class="factor-desc">Own: 92.5% vs Rent: 67.6%</div>
+          </div>
+          <span class="factor-badge badge-med">MED</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="main">
+    <div class="chat-topbar">
+      <div class="tb-left">
+        <div class="live-dot"></div>
+        <div>
+          <div class="tb-title">Loan Eligibility Advisor</div>
+          <div class="tb-sub">AI trained on 45,000 real loan records</div>
+        </div>
+      </div>
+      <div class="tb-actions">
+        <button class="tb-btn" onclick="exportReport()">📄 Export</button>
+        <button class="tb-btn" onclick="clearChat()">↺ New Chat</button>
+      </div>
+    </div>
+
+    <div class="messages" id="msgs"></div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <textarea id="inp" rows="1"
+          placeholder="Ask about loan eligibility, EMI, interest rates, credit scores…"
+          onkeydown="handleKey(event)"
+          oninput="onInp(this)"></textarea>
+        <button class="send" id="sendBtn" onclick="sendMsg()">
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div class="inp-foot">
+        <span><kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> new line</span>
+        <span id="cc">0/600</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <div class="rp-section">
+      <div class="rp-label">Approval Breakdown</div>
+      <div class="rp-chart">
+        <canvas id="donutC" role="img" aria-label="Donut chart showing loan approval vs rejection breakdown from 45000 records"></canvas>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-label">Your Profile Completeness</div>
+      <div class="completeness">
+        <div class="comp-label"><span>Data Collected</span><span id="compPct">0%</span></div>
+        <div class="comp-bar"><div class="comp-fill" id="compBar" style="width:0%"></div></div>
+      </div>
+      <div class="field-list" id="fieldList">
+        <div class="field-row missing"><span class="field-k">Income</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Loan Amount</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Interest Rate</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Credit Score</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Ownership</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Loan Intent</span><span class="field-v">—</span></div>
+        <div class="field-row missing"><span class="field-k">Prev Defaults</span><span class="field-v">—</span></div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-label">Dataset Insights</div>
+      <div class="insight"><strong>💡 Income Impact:</strong> Applicants earning <span class="ok">$120K+</span> see a <span class="ok">91.2%</span> approval rate vs <span class="no">43.8%</span> for &lt;$30K.</div>
+      <div class="insight"><strong>⚠️ DTI Warning:</strong> Keeping your debt-to-income ratio below <span class="ok">20%</span> gives you <span class="ok">82%+</span> approval odds.</div>
+      <div class="insight"><strong>🏠 Ownership Edge:</strong> Home owners get <span class="ok">92.5%</span> approval vs renters at <span class="no">67.6%</span>.</div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-label">Approval by Income Band</div>
+      <div style="height:140px;position:relative;">
+        <canvas id="incomeC" role="img" aria-label="Bar chart showing loan approval rates by income band"></canvas>
+      </div>
+    </div>
+  </aside>
+
+</div><!-- /shell -->
+
+<!-- ✅ All JS loaded from separate files -->
+<script>
+// ── DATASET KNOWLEDGE BASE ─────────────────────────────
+const DS = {
+  total: 45000, approvalRate: 77.8, avgLoan: 9583, avgRate: 11.01,
+  avgCredit: 633, avgIncome: 80319,
+  byIntent: { EDUCATION:83.0, MEDICAL:72.2, VENTURE:85.6, PERSONAL:79.9, DEBTCONSOLIDATION:69.7, HOMEIMPROVEMENT:73.7 },
+  byOwnership: { OWN:92.5, MORTGAGE:88.4, RENT:67.6, OTHER:66.7 },
+  byEducation: { Master:78.2, Bachelor:77.5, Associate:78.0, 'High School':77.7, Doctorate:77.1 },
+  dtiImpact: { '<10%':88.2, '10-20%':82.4, '20-30%':55.2, '30-40%':27.4, '>40%':24.6 },
+  incomeImpact: { '<30K':43.8, '30-50K':67.3, '50-80K':79.9, '80-120K':86.5, '120K+':91.2 },
+};
+
+// ── SYSTEM PROMPT ──────────────────────────────────────
+const SYSTEM = `You are LoanBot — a friendly AI loan advisor trained on a real dataset of 45,000 loan applications.
+
+=== DATASET KNOWLEDGE (45,000 records, Gradient Boosting model ~88% accuracy) ===
+- loan_status: 0=APPROVED (35,000 records, 77.8%), 1=REJECTED (10,000, 22.2%)
+- Approval by Loan Intent: VENTURE 85.6%, EDUCATION 83.0%, PERSONAL 79.9%, HOMEIMPROVEMENT 73.7%, MEDICAL 72.2%, DEBTCONSOLIDATION 69.7%
+- Approval by Home Ownership: OWN 92.5%, MORTGAGE 88.4%, RENT 67.6%, OTHER 66.7%
+- Approval by Income Band: <$30K→43.8%, $30-50K→67.3%, $50-80K→79.9%, $80-120K→86.5%, $120K+→91.2%
+- Loan-to-Income (DTI) Impact: <10%→88.2%, 10-20%→82.4%, 20-30%→55.2%, 30-40%→27.4%, >40%→24.6%
+- Previous Defaults=Yes → 100% REJECTION in dataset (most critical factor)
+- Interest Rate correlation with rejection: r=0.33 (higher rate = riskier signal)
+- Average approved applicant: income $86K, credit 633, loan $9.5K, emp 5yr
+- Average rejected applicant: income $60K, credit 632, loan $9.5K, emp 5yr
+
+=== CAPABILITIES ===
+1. Answer questions about loan approval factors using REAL dataset statistics
+2. Collect user profile step-by-step and assess eligibility
+3. Calculate EMI: EMI = P*r*(1+r)^n / ((1+r)^n-1)
+4. Explain rejection risk and improvement strategies
+5. Compare loan options with data-backed reasoning
+
+=== OUTPUT RULES ===
+- Use **bold** for important numbers, *italics* for terms
+- Always cite dataset stats: "In our 45K dataset, applicants with X see Y% approval…"
+- Be warm, encouraging, data-driven
+- When you have: income, loan_amnt, loan_int_rate, credit_score, home_ownership, loan_intent, age, emp_exp, education, previous_defaults → output:
+  [PREDICT:{"person_age":N,"person_income":N,"person_emp_exp":N,"loan_amnt":N,"loan_int_rate":N,"credit_score":N,"person_gender":"male","person_education":"Bachelor","person_home_ownership":"RENT","loan_intent":"PERSONAL","previous_loan_defaults_on_file":"No"}]
+- For EMI calculations: [EMI:{"principal":N,"rate":N,"tenure_years":N}]
+- After every prediction: give exactly 3 specific improvement tips backed by dataset numbers`;
+
+// ── STATE ──────────────────────────────────────────────
+let history     = [];
+let apiKey      = '';
+let demoMode    = false;
+let userProfile = {};
+let sessionId   = 'session-' + Date.now();
+let busy        = false;
+let donutChart  = null, incomeChart = null;
+
+// ── INIT ───────────────────────────────────────────────
+window.onload = () => {
+  buildIntentList();
+  renderDonut();
+  renderIncomeChart();
+  document.getElementById('apiModal').style.display = 'flex';
+};
+
+function startWithKey() {
+  const k = document.getElementById('apiKeyInp').value.trim();
+  if (!k) { alert('Please enter your Groq API key'); return; }
+  apiKey = k;
+  closeLaunch();
+}
+
+function startDemo() { demoMode = true; closeLaunch(); }
+function closeLaunch() {
+  document.getElementById('apiModal').style.display = 'none';
+  showWelcome();
+}
+
+function buildIntentList() {
+  const el = document.getElementById('intentList');
+  const sorted = Object.entries(DS.byIntent).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML = sorted.map(([k,v]) => `
+    <div class="intent-row">
+      <span class="intent-name">${k}</span>
+      <div class="intent-bar-wrap"><div class="intent-bar" style="width:${v}%"></div></div>
+      <span class="intent-pct">${v}%</span>
+    </div>`).join('');
+}
+
+function showWelcome() {
+  addBot(`👋 **Welcome to LoanBot AI!**
+
+I'm trained on **45,000 real loan applications** with a Gradient Boosting model (~88% accuracy). I can help you:
+
+- 🎯 **Predict your loan eligibility** with real probabilities
+- 📊 **Understand approval factors** from 45K data points
+- 🧮 **Calculate EMI** for any loan amount and tenure
+- 💡 **Get data-backed tips** to improve your approval odds
+
+In our dataset, the **top factors** for approval are:
+1. Loan-to-income ratio (keep DTI under 20% for 82%+ approval)
+2. Interest rate (lower rate = better signal to lender)
+3. Previous defaults (any defaults = very high rejection risk)
+4. Annual income (earners >$80K see 86%+ approval rates)
+
+**How can I help you today?** Share your loan details for a personalized eligibility prediction!`,
+  ['Check my loan eligibility', 'What credit score do I need?', 'Calculate EMI for $10,000 at 9% for 3 years', 'Best loan type to apply for?']);
+}
+</script>
+
+<script src="model.js"></script>
+<script src="charts.js"></script>
+<script src="ui.js"></script>
+<script src="chat.js"></script>
+
+</body>
+</html>
