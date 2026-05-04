@@ -61,7 +61,6 @@
   </div>
   <div class="nav-right">
     <button class="theme-toggle" id="currencyBtn" onclick="document.getElementById('currencyModal').style.display='flex'">💱 USD</button>
-    
     <button class="theme-toggle" onclick="clearChat()">↺ Reset</button>
   </div>
 </nav>
@@ -328,21 +327,12 @@ function buildIntentList() {
 function showWelcome() {
   addBot(`👋 **Welcome to LoanBot AI!**
 
-I'm trained on **45,000 real loan applications** with a Gradient Boosting model (~88% accuracy). Your selected currency is **${currency.symbol} ${currency.code} (${currency.name})**.
+Currency set to **${currency.symbol} ${currency.code}**. I can help you with:
+- 🎯 Loan eligibility prediction
+- 🧮 EMI calculation
+- 💡 Tips to improve your approval odds
 
-I can help you:
-- 🎯 **Predict your loan eligibility** with real probabilities
-- 📊 **Understand approval factors** from 45K data points
-- 🧮 **Calculate EMI** for any loan amount and tenure
-- 💡 **Get data-backed tips** to improve your approval odds
-
-In our dataset, the **top factors** for approval are:
-1. Loan-to-income ratio (keep DTI under 20% for 82%+ approval)
-2. Interest rate (lower rate = better signal to lender)
-3. Previous defaults (any defaults = very high rejection risk)
-4. Annual income (earners >${currency.symbol}80K see 86%+ approval rates)
-
-**How can I help you today?** Share your loan details for a personalized eligibility prediction!`,
+Just share your **income** and **loan amount** to get started!`,
   ['Check my loan eligibility', 'What credit score do I need?', `Calculate EMI for ${currency.symbol}10,000 at 9% for 3 years`, 'Best loan type to apply for?']);
 }
 </script>

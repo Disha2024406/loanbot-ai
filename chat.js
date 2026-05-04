@@ -5,6 +5,18 @@ async function sendMsg() {
   const el = document.getElementById('inp');
   const text = el.value.trim();
   if (!text || busy) return;
+
+  // ── INPUT VALIDATION ──────────────────────────────────
+  const validationError = validateInput(text);
+  if (validationError) {
+    el.value = ''; el.style.height = 'auto';
+    updateCC('');
+    addUser(text);
+    removeTyping();
+    addBot(validationError, []);
+    return;
+  }
+
   el.value = ''; el.style.height = 'auto';
   updateCC('');
   addUser(text);
@@ -18,28 +30,66 @@ async function sendMsg() {
   setBusy(false);
 }
 
+function validateInput(text) {
+  const nums = extractNumbers(text);
+
+  // Catch any negative number in the input directly
+  if (/-\s*[\d,]+/.test(text))
+    return '⚠️ **Invalid Input** — Values cannot be negative. Please enter a positive number (e.g., income 50000 or loan 10000).';
+
+  // Negative or zero income
+  if (nums.income !== undefined && nums.income <= 0)
+    return '⚠️ **Invalid Input** — Income cannot be zero or negative. Please enter a valid annual income.';
+
+  // Negative or zero loan
+  if (nums.loan !== undefined && nums.loan <= 0)
+    return '⚠️ **Invalid Input** — Loan amount cannot be zero or negative. Please enter a valid loan amount.';
+
+  // Unrealistic loan amount (over 10 million)
+  if (nums.loan && nums.loan > 10000000)
+    return '⚠️ **Invalid Input** — Loan amount seems unrealistically high. Please enter a reasonable loan amount.';
+
+  // Invalid interest rate
+  if (nums.rate !== undefined && (nums.rate <= 0 || nums.rate > 100))
+    return '⚠️ **Invalid Input** — Interest rate must be between 1% and 100%. Please enter a valid rate (e.g., 9%).';
+
+  // Invalid credit score
+  if (nums.creditScore !== undefined && (nums.creditScore < 300 || nums.creditScore > 850))
+    return '⚠️ **Invalid Input** — Credit score must be between 300 and 850. Please enter a valid score (e.g., 650).';
+
+  // Gibberish / too short
+  if (text.length < 2)
+    return '⚠️ **Invalid Input** — Please type a valid question or loan details.';
+
+  // Only special characters or numbers with no context
+  if (/^[^a-zA-Z]+$/.test(text) && text.length < 5)
+    return '⚠️ **Invalid Input** — Please provide more context with your numbers (e.g., "my income is 50000").';
+
+  return null; // valid
+}
+
 async function getReply() {
   if (demoMode) return buildDemoReply(history[history.length-1].content);
   if (!apiKey) return '⚠️ Please set your API key — click the 🔑 button in the top right.';
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
       },
       body: JSON.stringify({
-        model:'llama-3.3-70b-versatile',
+        model:'claude-sonnet-4-20250514',
         max_tokens:2048,
-        messages: [
-          { role:'system', content: SYSTEM },
-          ...history
-        ]
+        system: SYSTEM,
+        messages: history
       })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    return data.choices[0].message.content;
+    return data.content.map(b=>b.text||'').join('');
   } catch(e) {
     return `⚠️ Error: ${e.message}. Please check your API key.`;
   }
@@ -140,7 +190,8 @@ function buildDemoReply(input) {
     const defaultsFlag = defaults === 'Yes';
 
     const tips = [];
-    if (dtiPct >= 20) tips.push(`Reduce loan amount to $${Math.round(income * 0.19).toLocaleString()} to bring DTI below 20% (82.4% approval band)`);
+    const sym = currency.symbol;
+    if (dtiPct >= 20) tips.push(`Reduce loan amount to ${sym}${Math.round(income * 0.19).toLocaleString()} to bring DTI below 20% (82.4% approval band)`);
     if (rate > 10)    tips.push(`A lower interest rate (under 10%) improves approval signal significantly (r=0.33 with rejection)`);
     if (ownership === 'RENT') tips.push(`Home owners see **92.5%** approval vs your current **67.6%** as a renter — consider secured loan alternatives`);
     if (intent === 'PERSONAL' || !nums.intent) tips.push(`Switching intent to EDUCATION or VENTURE gives 83-85.6% approval vs PERSONAL's 79.9% in our dataset`);
@@ -156,14 +207,14 @@ ${predBlock}
 ${emiBlock}
 
 **Your Profile Summary:**
-- 💰 Annual Income: **$${income.toLocaleString()}**
-- 💵 Loan Amount: **$${loan.toLocaleString()}**
+- 💰 Annual Income: **${sym}${income.toLocaleString()}**
+- 💵 Loan Amount: **${sym}${loan.toLocaleString()}**
 - 📉 Interest Rate: **${rate}%**${nums.rate ? '' : ' *(assumed — dataset avg)*'}
 - 📊 Debt-to-Income: **${dtiPct}%** → ${dtiBand} band → **${dtiApproval}%** approval rate in dataset
 - 🏠 Ownership: **${ownership}** → **${DS.byOwnership[ownership] || 67.6}%** approval rate
-- 💳 Income Band: **$${income.toLocaleString()}** → **${incomeApproval}%** approval rate
+- 💳 Income Band: **${sym}${income.toLocaleString()}** → **${incomeApproval}%** approval rate
 
-**Monthly EMI would be: $${emiData.emi.toLocaleString()}** over ${tenure} year${tenure>1?'s':''}${nums.tenure ? '' : ' *(assumed 3yr — tell me your preferred tenure)*'}
+**Monthly EMI would be: ${sym}${emiData.emi.toLocaleString()}** over ${tenure} year${tenure>1?'s':''}${nums.tenure ? '' : ' *(assumed 3yr — tell me your preferred tenure)*'}
 
 ${defaultsFlag ? '⚠️ **CRITICAL: Previous defaults detected — this is a 100% rejection signal in our training data.**' : '✅ No previous defaults — this is your strongest positive factor.'}
 
@@ -176,8 +227,8 @@ ${tips.slice(0,3).map((t,i)=>`${i+1}. ${t}`).join('\n')}`;
     return `I see an interest rate of **${nums.rate}%**. In our 45K dataset, the average approved loan carries **11.01%** — yours is ${nums.rate < 11 ? 'below average ✅' : 'above average ⚠️'}.
 
 To give you a full eligibility prediction, I also need:
-- 💰 Your **annual income** (e.g., $75,000)
-- 💵 The **loan amount** you need (e.g., $15,000)
+- 💰 Your **annual income** (e.g., ${currency.symbol}75,000)
+- 💵 The **loan amount** you need (e.g., ${currency.symbol}15,000)
 
 Just share those two and I'll predict your approval probability instantly!`;
   }
@@ -185,16 +236,16 @@ Just share those two and I'll predict your approval probability instantly!`;
   // 3. Has only income
   if (nums.income && !nums.loan) {
     const incomeApproval = nums.income < 30000 ? 43.8 : nums.income < 50000 ? 67.3 : nums.income < 80000 ? 79.9 : nums.income < 120000 ? 86.5 : 91.2;
-    return `Your income of **$${nums.income.toLocaleString()}** puts you in the **${incomeApproval}% approval bracket** from our dataset.
+    return `Your income of **${currency.symbol}${nums.income.toLocaleString()}** puts you in the **${incomeApproval}% approval bracket** from our dataset.
 
-Now I need the **loan amount** you're requesting. Based on your income, keeping the loan under **$${Math.round(nums.income * 0.20).toLocaleString()}** (20% of income) gives you the best approval odds — **82%+** in our data.
+Now I need the **loan amount** you're requesting. Based on your income, keeping the loan under **${currency.symbol}${Math.round(nums.income * 0.20).toLocaleString()}** (20% of income) gives you the best approval odds — **82%+** in our data.
 
 What loan amount are you looking for?`;
   }
 
   // 4. Has only loan
   if (nums.loan && !nums.income) {
-    return `I see you need a loan of **$${nums.loan.toLocaleString()}**. In our 45K dataset, the average approved loan is **$9,583**.
+    return `I see you need a loan of **${currency.symbol}${nums.loan.toLocaleString()}**.
 
 To predict your eligibility I need your **annual income** — this determines your Debt-to-Income ratio, which is the **strongest predictor** in our model (r=0.38).
 
@@ -205,14 +256,15 @@ What is your annual income?`;
   if ((lower.includes('emi') || lower.includes('monthly payment') || lower.includes('installment')) && nums.loan && nums.rate) {
     const P = nums.loan, r = nums.rate, t = nums.tenure || 5;
     const emiData = calcEMI(P, r, t);
+    const sym = currency.symbol;
     return `Here's your EMI calculation!
 [EMI:{"principal":${P},"rate":${r},"tenure_years":${t}}]
 
-**Monthly EMI: $${emiData.emi.toLocaleString()}** for ${t} years
-- Total Interest: $${emiData.total_interest.toLocaleString()} (${Math.round(emiData.total_interest/P*100)}% of principal)
-- Total Paid: $${emiData.total_paid.toLocaleString()}
+**Monthly EMI: ${sym}${emiData.emi.toLocaleString()}** for ${t} years
+- Total Interest: ${sym}${emiData.total_interest.toLocaleString()} (${Math.round(emiData.total_interest/P*100)}% of principal)
+- Total Paid: ${sym}${emiData.total_paid.toLocaleString()}
 
-💡 In our **45K dataset**, applicants whose EMI exceeds 20% of monthly income face a **55%+ rejection** rate. Your safe monthly income for this EMI is **$${Math.round(emiData.emi / 0.20).toLocaleString()}+/year**.`;
+💡 Your safe monthly income for this EMI is **${sym}${Math.round(emiData.emi / 0.20).toLocaleString()}+/year**.`;
   }
 
   // 6. Credit score
@@ -293,17 +345,14 @@ Do you want me to calculate what your profile would look like *without* the defa
   }
 
   // 10. Generic / greeting
-  return `I'm LoanBot, trained on **45,000 real loan applications** (Gradient Boosting, ~88% accuracy).
+  return `To predict your eligibility, I need a couple of details:
+- 💰 **Income** — e.g., *"my income is 80,000"*
+- 💵 **Loan amount** — e.g., *"I need a loan of 15,000"*
+- 📉 **Interest rate** *(optional)* — e.g., *"at 9%"*
 
-To give you a **personalised eligibility prediction** with an approval probability, just share:
-- 💰 **Income** — e.g., *"income 80000"* or *"I earn $80k"*
-- 💵 **Loan amount** — e.g., *"loan 15000"* or *"need $15,000"*
-- 📉 **Interest rate** — e.g., *"rate 9%"* or *"at 8.5%"* *(optional — I'll use dataset average if not given)*
+${nums.income ? `✅ Income detected: ${currency.symbol}${nums.income.toLocaleString()}` : '❓ Income: not found yet'}
+${nums.loan   ? `✅ Loan detected: ${currency.symbol}${nums.loan.toLocaleString()}`     : '❓ Loan amount: not found yet'}
+${nums.rate   ? `✅ Rate detected: ${nums.rate}%`                                       : ''}
 
-You gave me: **"${input}"**
-${nums.income ? `✅ Income detected: $${nums.income.toLocaleString()}` : '❓ Income: not found yet'}
-${nums.loan   ? `✅ Loan detected: $${nums.loan.toLocaleString()}`   : '❓ Loan amount: not found yet'}
-${nums.rate   ? `✅ Rate detected: ${nums.rate}%`                    : '❓ Rate: not found yet'}
-
-Just add the missing pieces and I'll run the prediction instantly!`;
+Just share the missing details and I'll run the prediction instantly!`;
 }
