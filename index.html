@@ -13,12 +13,31 @@
 </head>
 <body>
 
+<!-- ── CURRENCY MODAL ──────────────────────────────────── -->
+<div class="modal-bg" id="currencyModal">
+  <div class="modal">
+    <h2>🌍 Select Your Currency</h2>
+    <p>Choose your preferred currency — all loan amounts, EMI, and income figures will be displayed in this currency throughout the session.</p>
+    <div id="currencyGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+      <button class="currency-btn" onclick="selectCurrency('USD','$','US Dollar')">🇺🇸 USD — $ Dollar</button>
+      <button class="currency-btn" onclick="selectCurrency('INR','₹','Indian Rupee')">🇮🇳 INR — ₹ Rupee</button>
+      <button class="currency-btn" onclick="selectCurrency('EUR','€','Euro')">🇪🇺 EUR — € Euro</button>
+      <button class="currency-btn" onclick="selectCurrency('GBP','£','British Pound')">🇬🇧 GBP — £ Pound</button>
+      <button class="currency-btn" onclick="selectCurrency('AED','AED','UAE Dirham')">🇦🇪 AED — Dirham</button>
+      <button class="currency-btn" onclick="selectCurrency('PKR','₨','Pakistani Rupee')">🇵🇰 PKR — ₨ Rupee</button>
+      <button class="currency-btn" onclick="selectCurrency('BDT','৳','Bangladeshi Taka')">🇧🇩 BDT — ৳ Taka</button>
+      <button class="currency-btn" onclick="selectCurrency('CAD','C$','Canadian Dollar')">🇨🇦 CAD — C$ Dollar</button>
+    </div>
+    <p class="modal-note">You can change currency anytime by clicking 💱 in the top bar</p>
+  </div>
+</div>
+
 <!-- ── API KEY MODAL ─────────────────────────────────── -->
-<div class="modal-bg" id="apiModal">
+<div class="modal-bg" id="apiModal" style="display:none">
   <div class="modal">
     <h2>🤖 LoanBot AI</h2>
     <p>This chatbot is <strong>trained on 45,000 real loan applications</strong>. Enter your Groq API key to activate the AI advisor — your key stays in-browser memory only.</p>
-    <input class="modal-inp" type="password" id="apiKeyInp" placeholder="gsk_…" />
+    <input class="modal-inp" type="password" id="apiKeyInp" placeholder="gsk_..." />
     <button class="modal-btn" onclick="startWithKey()">Launch LoanBot →</button>
     <p class="modal-note">Key never leaves your browser · Used only for Groq API calls</p>
     <div class="modal-divider"><span>or</span></div>
@@ -41,7 +60,8 @@
     <div class="pill"><span class="dot gold"></span>Accuracy ~88%</div>
   </div>
   <div class="nav-right">
-    <button class="api-btn" onclick="document.getElementById('apiModal').style.display='flex'">🔑 API Key</button>
+    <button class="theme-toggle" id="currencyBtn" onclick="document.getElementById('currencyModal').style.display='flex'">💱 USD</button>
+    
     <button class="theme-toggle" onclick="clearChat()">↺ Reset</button>
   </div>
 </nav>
@@ -259,21 +279,35 @@ let sessionId   = 'session-' + Date.now();
 let busy        = false;
 let donutChart  = null, incomeChart = null;
 
+// ── CURRENCY STATE ─────────────────────────────────────
+let currency = { code:'USD', symbol:'$', name:'US Dollar' };
+
+function selectCurrency(code, symbol, name) {
+  currency = { code, symbol, name };
+  document.getElementById('currencyBtn').textContent = `💱 ${code}`;
+  document.getElementById('currencyModal').style.display = 'none';
+  demoMode = true;
+  showWelcome();
+}
+
+function formatMoney(amount) {
+  return `${currency.symbol}${Math.round(amount).toLocaleString()}`;
+}
+
 // ── INIT ───────────────────────────────────────────────
 window.onload = () => {
   buildIntentList();
   renderDonut();
   renderIncomeChart();
-  document.getElementById('apiModal').style.display = 'flex';
+  document.getElementById('currencyModal').style.display = 'flex';
 };
 
 function startWithKey() {
   const k = document.getElementById('apiKeyInp').value.trim();
-  if (!k) { alert('Please enter your Groq API key'); return; }
+  if (!k) { alert('Please enter your Groq API key (starts with gsk_...)'); return; }
   apiKey = k;
   closeLaunch();
 }
-
 function startDemo() { demoMode = true; closeLaunch(); }
 function closeLaunch() {
   document.getElementById('apiModal').style.display = 'none';
@@ -294,8 +328,9 @@ function buildIntentList() {
 function showWelcome() {
   addBot(`👋 **Welcome to LoanBot AI!**
 
-I'm trained on **45,000 real loan applications** with a Gradient Boosting model (~88% accuracy). I can help you:
+I'm trained on **45,000 real loan applications** with a Gradient Boosting model (~88% accuracy). Your selected currency is **${currency.symbol} ${currency.code} (${currency.name})**.
 
+I can help you:
 - 🎯 **Predict your loan eligibility** with real probabilities
 - 📊 **Understand approval factors** from 45K data points
 - 🧮 **Calculate EMI** for any loan amount and tenure
@@ -305,10 +340,10 @@ In our dataset, the **top factors** for approval are:
 1. Loan-to-income ratio (keep DTI under 20% for 82%+ approval)
 2. Interest rate (lower rate = better signal to lender)
 3. Previous defaults (any defaults = very high rejection risk)
-4. Annual income (earners >$80K see 86%+ approval rates)
+4. Annual income (earners >${currency.symbol}80K see 86%+ approval rates)
 
 **How can I help you today?** Share your loan details for a personalized eligibility prediction!`,
-  ['Check my loan eligibility', 'What credit score do I need?', 'Calculate EMI for $10,000 at 9% for 3 years', 'Best loan type to apply for?']);
+  ['Check my loan eligibility', 'What credit score do I need?', `Calculate EMI for ${currency.symbol}10,000 at 9% for 3 years`, 'Best loan type to apply for?']);
 }
 </script>
 

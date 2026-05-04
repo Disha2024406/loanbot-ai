@@ -66,6 +66,16 @@ body{font-family:var(--font-b);background:var(--navy);color:var(--text);display:
 .theme-toggle:hover,.api-btn:hover{border-color:var(--border2);color:var(--text);}
 .api-btn{background:linear-gradient(135deg,rgba(77,124,254,.15),rgba(45,212,191,.12));border-color:rgba(77,124,254,.3);color:var(--accent);}
 
+/* Currency modal buttons */
+.currency-btn{
+  padding:11px 10px;background:var(--surface);
+  border:1px solid var(--border2);border-radius:var(--rs);
+  color:var(--text2);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .18s;font-family:var(--font-b);
+  text-align:center;
+}
+.currency-btn:hover{background:rgba(77,124,254,.15);border-color:rgba(77,124,254,.5);color:var(--text);}
+
 /* ── SHELL ───────────────────────────────────────────── */
 .shell{flex:1;display:flex;overflow:hidden;}
 

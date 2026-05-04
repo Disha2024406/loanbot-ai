@@ -53,6 +53,7 @@ function buildPredCard(d) {
   const ok   = d.approved;
   const prob = ok ? d.prob_approved : d.prob_rejected;
   const dti  = d.dti || Math.round(d.loan_amnt / d.person_income * 100);
+  const sym  = currency.symbol;
   return `
 <div class="pred-card">
   <div class="pred-header ${ok?'approved':'rejected'}">
@@ -69,8 +70,8 @@ function buildPredCard(d) {
     </div>
   </div>
   <div class="pred-body">
-    <div class="pred-row"><span class="pk">Loan Amount</span><span class="pv">$${Math.round(d.loan_amnt).toLocaleString()}</span></div>
-    <div class="pred-row"><span class="pk">Annual Income</span><span class="pv">$${Math.round(d.person_income).toLocaleString()}</span></div>
+    <div class="pred-row"><span class="pk">Loan Amount</span><span class="pv">${sym}${Math.round(d.loan_amnt).toLocaleString()}</span></div>
+    <div class="pred-row"><span class="pk">Annual Income</span><span class="pv">${sym}${Math.round(d.person_income).toLocaleString()}</span></div>
     <div class="pred-row"><span class="pk">Debt-to-Income</span><span class="pv" style="color:${dti<20?'var(--green)':dti<35?'var(--orange)':'var(--red)'}">${dti}%</span></div>
     <div class="pred-row"><span class="pk">Interest Rate</span><span class="pv">${d.loan_int_rate}%</span></div>
     <div class="pred-row"><span class="pk">Credit Score</span><span class="pv">${d.credit_score}</span></div>
@@ -88,14 +89,15 @@ function buildPredCard(d) {
 // ── BUILD EMI CARD ────────────────────────────────────
 function buildEMICard(d) {
   const interest_pct = Math.round(d.total_interest / d.total_paid * 100);
+  const sym = currency.symbol;
   return `
 <div class="emi-card">
   <div class="emi-title">📊 EMI Breakdown · ${d.tenure_years}-Year Loan</div>
-  <div class="emi-main">$${d.emi.toLocaleString()}<span style="font-size:14px;color:var(--text2);font-family:var(--font-b);font-weight:400">/month</span></div>
+  <div class="emi-main">${sym}${d.emi.toLocaleString()}<span style="font-size:14px;color:var(--text2);font-family:var(--font-b);font-weight:400">/month</span></div>
   <div class="emi-grid">
-    <div class="emi-item"><div class="el">Principal</div><div class="ev" style="color:var(--teal)">$${Math.round(d.principal).toLocaleString()}</div></div>
-    <div class="emi-item"><div class="el">Total Interest</div><div class="ev" style="color:var(--red)">$${Math.round(d.total_interest).toLocaleString()}</div></div>
-    <div class="emi-item"><div class="el">Total Paid</div><div class="ev">$${Math.round(d.total_paid).toLocaleString()}</div></div>
+    <div class="emi-item"><div class="el">Principal</div><div class="ev" style="color:var(--teal)">${sym}${Math.round(d.principal).toLocaleString()}</div></div>
+    <div class="emi-item"><div class="el">Total Interest</div><div class="ev" style="color:var(--red)">${sym}${Math.round(d.total_interest).toLocaleString()}</div></div>
+    <div class="emi-item"><div class="el">Total Paid</div><div class="ev">${sym}${Math.round(d.total_paid).toLocaleString()}</div></div>
     <div class="emi-item"><div class="el">Interest Cost</div><div class="ev" style="color:var(--orange)">${interest_pct}%</div></div>
   </div>
 </div>`;
